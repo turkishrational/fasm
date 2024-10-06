@@ -1,4 +1,4 @@
-## Flat Assembler (FASM) for TRDOS 386
+## Flat Assembler (FASM) for TRDOS 386 Operating System
 
 TRDOS 386 adaptation/port of Tomasz Grysztar's Flat Assembler (v1.73.32)
 
