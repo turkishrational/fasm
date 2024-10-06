@@ -1,0 +1,1 @@
+fasm -s fasm.fas TRDOS386\fasm.asm
