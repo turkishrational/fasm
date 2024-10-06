@@ -8,7 +8,7 @@ NOTE:
 .PRG files are TRDOS 386 (32 bit, x86) flat binary executables. They start at virtual address 0 always.
 (Similar to 16 bit MSDOS .COM files which start at 100h.) 
 TRDOS 386 does not use segments. (Demand Paging method is used. The kernel page directory is set for 1 to 1
-physical memory layout. Interrupts are set to run in the 1st 4MB -PDE entry 0- also with user's page directories.
+physical memory layout. Interrupts are set to run in the 1st 4MB -PDE 0- also with user's page directories.
 User's segment selectors are set for 4MB base address with 4GB-4MB limit.)
 
 (TRDOS 386 kernel handles memory as virtually -up to 4GB- flat memory by using system and user page tables.)
