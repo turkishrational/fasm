@@ -186,15 +186,15 @@
 	and	al,1
 	add	bl,al
 	;mov	al,[si+80-1]
-	mov	al,[esi+80+1]
+	mov	al,[esi+80-1]
 	and	al,1
 	add	bl,al
 	;mov	al,[si-80+1]
-	mov	al,[esi+80+1]
+	mov	al,[esi-80+1]
 	and	al,1
 	add	bl,al
 	;mov	al,[si-80-1]
-	mov	al,[esi+80-1]
+	mov	al,[esi-80-1]
 	and	al,1
 	add	bl,al
 	;mov	al,byte [si]
