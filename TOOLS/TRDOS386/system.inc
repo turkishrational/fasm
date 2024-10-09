@@ -104,6 +104,11 @@ free:
 	pop	ecx
 	;;;
 
+	;sys _break
+	; ebx = new [u.break] 
+	mov	eax,17 ; sysbreak
+	int	0x40
+
       already_free:
 	pop	ebx
       string_displayed:
