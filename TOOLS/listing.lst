@@ -1,0 +1,1180 @@
+                                                                ; -----------------------------------------------------------
+                                                                ; LISTING.PRG - FLAT Assembler Listing for TRDOS 386 (v2.0.9)
+                                                                ; Erdogan Tan - 2024
+                                                                ; Beginning: 08/10/2024
+                                                                ; Last Update: 09/10/2024
+                                                                ; -----------------------------------------------------------
+                                                                ; Modified from 'tools/libc/listing.asm' file of
+                                                                ; 'flat assembler 1.73.32 for Linux' source code
+                                                                ; 2024
+                                                                
+                                                                	;format	ELF
+                                                                	;public	main
+                                                                
+                                                                	format	binary
+                                                                
+                                                                ;include 'ccall.inc'
+                                                                
+                                                                ;section '.text' executable align 16
+                                                                
+                                                                	use32
+                                                                	org 0x0
+                                                                
+                                                                  main:
+00000000: BB 04 2D 00 00                                        	mov	ebx, bss_end
+00000005: B8 11 00 00 00                                        	mov	eax, 17 ; sysbreak
+0000000A: CD 40                                                 	int	40h
+                                                                	;;;
+                                                                
+                                                                	;mov	ecx,[esp+4]
+0000000C: 8B 0C 24                                              	mov	ecx,[esp]
+                                                                	;mov	[argc],ecx
+                                                                	;mov	ebx,[esp+8]
+0000000F: 8D 5C 24 04                                           	lea	ebx,[esp+4]
+                                                                	;mov	[argv],ebx
+                                                                
+                                                                	;mov	[display_handle],1
+                                                                
+00000013: E8 42 00 00 00                                        	call	get_params
+00000018: 73 16                                                 	jnc	make_listing
+                                                                
+0000001A: BE F1 0A 00 00                                        	mov	esi,_usage
+0000001F: E8 44 01 00 00                                        	call	display_string
+                                                                	;ccall	exit,2
+00000024: B8 01 00 00 00                                        	mov	eax,1 ; sysexit
+00000029: BB 02 00 00 00                                        	mov	ebx,2
+0000002E: CD 40                                                 	int	40h
+                                                                
+                                                                  make_listing:
+00000030: E8 D0 01 00 00                                        	call	listing
+                                                                   error_@:
+                                                                	;ccall	exit,0
+00000035: B8 01 00 00 00                                        	mov	eax,1 ; sysexit
+                                                                	;mov	ebx,0
+0000003A: 29 DB                                                 	sub	ebx,ebx
+0000003C: CD 40                                                 	int	40h
+                                                                
+                                                                  error:
+                                                                	;mov	[display_handle],2
+0000003E: BE BC 0B 00 00                                        	mov	esi,_error_prefix
+00000043: E8 20 01 00 00                                        	call	display_string
+00000048: 5E                                                    	pop	esi
+00000049: E8 1A 01 00 00                                        	call	display_string
+0000004E: BE C4 0B 00 00                                        	mov	esi,_error_suffix
+00000053: E8 10 01 00 00                                        	call	display_string
+                                                                	;;ccall	exit,0
+                                                                	;mov	eax,1 ; sysexit
+                                                                	;;mov	ebx,0
+                                                                	;xor	ebx,ebx
+                                                                	;int	40h
+00000058: EB DB                                                 	jmp	error_@
+                                                                
+                                                                  get_params:
+                                                                	;mov	ecx,[argc]
+                                                                	;mov	ebx,[argv]
+0000005A: 83 C3 04                                              	add	ebx,4
+0000005D: 49                                                    	dec	ecx
+0000005E: 74 3C                                                 	jz	bad_params
+                                                                      get_param:
+00000060: 8B 33                                                 	mov	esi,[ebx]
+00000062: 8A 06                                                 	mov	al,[esi]
+00000064: 3C 2D                                                 	cmp	al,'-'
+00000066: 74 22                                                 	je	option_param
+00000068: 83 3D E2 0A 00 00 00                                  	cmp	[input_file],0
+0000006F: 75 08                                                 	jne	get_output_file
+00000071: 89 35 E2 0A 00 00                                     	mov	[input_file],esi
+00000077: EB 57                                                 	jmp	next_param
+                                                                      get_output_file:
+00000079: 83 3D E6 0A 00 00 00                                  	cmp	[output_file],0
+00000080: 75 1A                                                 	jne	bad_params
+00000082: 89 35 E6 0A 00 00                                     	mov	[output_file],esi
+00000088: EB 46                                                 	jmp	next_param
+                                                                      option_param:
+0000008A: 46                                                    	inc	esi
+0000008B: AC                                                    	lodsb
+0000008C: 3C 61                                                 	cmp	al,'a'
+0000008E: 74 0E                                                 	je	addresses_option
+00000090: 3C 41                                                 	cmp	al,'A'
+00000092: 74 0A                                                 	je	addresses_option
+00000094: 3C 62                                                 	cmp	al,'b'
+00000096: 74 14                                                 	je	bytes_per_line_option
+00000098: 3C 42                                                 	cmp	al,'B'
+0000009A: 74 10                                                 	je	bytes_per_line_option
+                                                                      bad_params:
+0000009C: F9                                                    	stc
+0000009D: C3                                                    	ret
+                                                                      addresses_option:
+0000009E: 80 3E 00                                              	cmp	byte [esi],0
+000000A1: 75 F9                                                 	jne	bad_params
+000000A3: C6 05 EE 0A 00 00 01                                  	mov	[show_addresses],1
+000000AA: EB 24                                                 	jmp	next_param
+                                                                      bytes_per_line_option:
+000000AC: 80 3E 00                                              	cmp	byte [esi],0
+000000AF: 75 08                                                 	jne	get_bytes_per_line_setting
+000000B1: 49                                                    	dec	ecx
+000000B2: 74 E8                                                 	jz	bad_params
+000000B4: 83 C3 04                                              	add	ebx,4
+000000B7: 8B 33                                                 	mov	esi,[ebx]
+                                                                      get_bytes_per_line_setting:
+000000B9: E8 2B 00 00 00                                        	call	get_option_value
+000000BE: 09 D2                                                 	or	edx,edx
+000000C0: 74 DA                                                 	jz	bad_params
+000000C2: 81 FA E8 03 00 00                                     	cmp	edx,1000
+000000C8: 77 D2                                                 	ja	bad_params
+000000CA: 89 15 EA 0A 00 00                                     	mov	[code_bytes_per_line],edx
+                                                                      next_param:
+000000D0: 83 C3 04                                              	add	ebx,4
+000000D3: 49                                                    	dec	ecx
+000000D4: 75 8A                                                 	jnz	get_param
+000000D6: 83 3D E2 0A 00 00 00                                  	cmp	[input_file],0
+000000DD: 74 BD                                                 	je	bad_params
+000000DF: 83 3D E6 0A 00 00 00                                  	cmp	[output_file],0
+000000E6: 74 B4                                                 	je	bad_params
+                                                                	;clc
+000000E8: C3                                                    	ret
+                                                                      get_option_value:
+000000E9: 31 C0                                                 	xor	eax,eax
+000000EB: 89 C2                                                 	mov	edx,eax
+                                                                      get_option_digit:
+000000ED: AC                                                    	lodsb
+000000EE: 3C 20                                                 	cmp	al,20h
+000000F0: 74 1B                                                 	je	option_value_ok
+000000F2: 3C 0D                                                 	cmp	al,0Dh
+000000F4: 74 17                                                 	je	option_value_ok
+000000F6: 08 C0                                                 	or	al,al
+000000F8: 74 13                                                 	jz	option_value_ok
+000000FA: 2C 30                                                 	sub	al,30h
+000000FC: 72 12                                                 	jc	invalid_option_value2
+000000FE: 3C 09                                                 	cmp	al,9
+00000100: 77 0D                                                 	ja	invalid_option_value
+00000102: 6B D2 0A                                              	imul	edx,10
+00000105: 70 08                                                 	jo	invalid_option_value
+00000107: 01 C2                                                 	add	edx,eax
+00000109: 72 05                                                 	jc	invalid_option_value2
+0000010B: EB E0                                                 	jmp	get_option_digit
+                                                                      option_value_ok:
+0000010D: 4E                                                    	dec	esi
+                                                                	;clc
+0000010E: C3                                                    	ret
+                                                                      invalid_option_value:
+0000010F: F9                                                    	stc
+                                                                      invalid_option_value2:
+00000110: C3                                                    	ret
+                                                                
+                                                                  include 'system.inc'
+                                                                ; -----------------------------------------------------------
+                                                                ; LISTING.PRG - FLAT Assembler Listing for TRDOS 386 (v2.0.9)
+                                                                ; Erdogan Tan - 2024
+                                                                ; Beginning: 08/10/2024
+                                                                ; Last Update: 09/10/2024
+                                                                ; -----------------------------------------------------------
+                                                                ; Modified from 'tools/libc/system.inc' file of
+                                                                ; 'flat assembler 1.73.32 for Linux' source code
+                                                                ; 2024
+                                                                
+                                                                ;extrn malloc
+                                                                ;extrn getenv
+                                                                ;extrn fopen
+                                                                ;extrn fclose
+                                                                ;extrn fread
+                                                                ;extrn fwrite
+                                                                ;extrn fseek
+                                                                ;extrn ftell
+                                                                ;extrn time
+                                                                ;extrn exit
+                                                                ;extrn 'free' as libc_free
+                                                                ;extrn 'write' as libc_write
+                                                                
+                                                                alloc:
+                                                                	;ccall	malloc,eax
+00000111: 53 50                                                 	push	ebx eax
+                                                                	;sys _break,-1  ; get u.break address
+00000113: BB FF FF FF FF                                        	mov	ebx,-1
+00000118: B8 11 00 00 00                                        	mov	eax,17	; sysbreak
+0000011D: CD 40                                                 	int	40h
+0000011F: 5B                                                    	pop 	ebx  ; allocation size
+00000120: 72 20                                                   	jc	malloc_error
+                                                                
+                                                                	;;;
+                                                                	; ! (not necessary) !
+                                                                	;sysalloc ; allocate (contiguous) memory pages
+00000122: 51                                                    	push	ecx
+00000123: 53                                                    	push	ebx
+00000124: 50                                                    	push	eax
+00000125: 93                                                    	xchg	eax,ebx
+                                                                	; ebx = current [u.break]
+                                                                	;     = start (virtual) addr to be allocated 
+00000126: 89 C1                                                 	mov	ecx,eax ; allocation byte count
+00000128: B8 2A 00 00 00                                        	mov	eax,42  ; sysalloc
+0000012D: CD 40                                                 	int	40h
+                                                                	; result not important !
+                                                                	; (TRDOS 386 kernel will allocate memory pages
+                                                                	; to this program/process when a write access
+                                                                	; to an unallocated page causes a page fault.)
+                                                                	; (Demand Paging principle.)
+0000012F: 58                                                    	pop	eax
+00000130: 5B                                                    	pop	ebx
+00000131: 59                                                    	pop	ecx
+                                                                	;;;
+                                                                
+                                                                	; eax = [u.break]
+00000132: 83 C0 03                                              	add 	eax,3
+00000135: 24 FC                                                 	and	al,not 3
+00000137: 50                                                    	push	eax
+00000138: 01 C3                                                 	add	ebx,eax
+                                                                	; ebx = new [u.break]
+                                                                	;sys _break
+0000013A: B8 11 00 00 00                                        	mov	eax,17	; sysbreak
+0000013F: CD 40                                                 	int	40h
+00000141: 58                                                    	pop	eax
+                                                                	;jc	malloc_error
+                                                                	;test	eax,eax
+                                                                	;jz	allocation_failed
+                                                                	;clc
+                                                                	;ret
+                                                                      ;allocation_failed:
+                                                                	;stc
+                                                                	;ret
+                                                                      malloc_error:
+00000142: 5B                                                    	pop	ebx
+00000143: C3                                                    	ret
+                                                                free:
+                                                                	;ccall	libc_free,eax
+00000144: 53 50                                                 	push	ebx eax
+                                                                	;sys _break,-1	; get u.break address
+00000146: BB FF FF FF FF                                        	mov	ebx,-1
+0000014B: B8 11 00 00 00                                        	mov	eax,17	; sysbreak
+00000150: CD 40                                                 	int	40h
+00000152: 5B                                                    	pop 	ebx  ; old [u.break]
+00000153: 72 ED                                                   	jc	malloc_error
+                                                                	; eax = current [u.break]
+                                                                
+00000155: 39 D8                                                 	cmp	eax, ebx
+00000157: 76 0D                                                 	jna	short already_free ; nothing to do
+                                                                
+                                                                	;;;
+                                                                	; ! (not necessary) !
+                                                                	;sysdalloc ; deallocate user's memory pages
+00000159: 51                                                    	push	ecx
+0000015A: 89 C1                                                 	mov	ecx,eax
+0000015C: 29 D9                                                 	sub	ecx,ebx ; deallocation byte count
+                                                                	; ebx = virtual (start) addr to be deallocated
+0000015E: B8 2B 00 00 00                                        	mov	eax,43  ; sysdalloc
+00000163: CD 40                                                 	int	40h
+                                                                	; result not important !
+                                                                	; (TRDOS 386 kernel will deallocate this
+                                                                	; program's mem pages when this program/process
+                                                                	; is terminated.)
+00000165: 59                                                    	pop	ecx
+                                                                	;;;
+                                                                
+                                                                      already_free:
+00000166: 5B                                                    	pop	ebx
+                                                                      string_displayed:
+00000167: C3                                                    	ret
+                                                                
+                                                                display_string:
+00000168: AC                                                    	lodsb
+00000169: 08 C0                                                 	or	al,al
+0000016B: 74 FA                                                 	jz	string_displayed
+                                                                	;mov	dl,al
+0000016D: E8 02 00 00 00                                        	call	display_character
+00000172: EB F4                                                 	jmp	display_string
+                                                                      ;string_displayed:
+                                                                	;ret
+                                                                    display_character:
+                                                                	;mov	[character],dl
+                                                                	;ccall	libc_write,[display_handle],character,1
+                                                                	;mov	cl,dl
+00000174: 88 C1                                                 	mov	cl,al
+00000176: BB 02 00 00 00                                        	mov	ebx,2	; STDOUT
+0000017B: B8 2E 00 00 00                                        	mov	eax,46  ; sysstdio
+00000180: CD 40                                                 	int	40h
+00000182: C3                                                    	ret
+                                                                open:
+00000183: B8 05 00 00 00                                        	mov	eax,5	; sysopen
+                                                                open_create_@:
+                                                                	;push	esi edi ebp
+00000188: 56 57                                                 	push	esi edi
+0000018A: 50                                                    	push	eax
+0000018B: E8 11 00 00 00                                        	call	adapt_path
+                                                                	;ccall	fopen,buffer,open_mode
+                                                                	;mov	eax,5	; sysopen
+00000190: 58                                                    	pop	eax
+00000191: BB 04 1D 00 00                                        	mov	ebx,buffer
+00000196: 29 C9                                                 	sub	ecx,ecx ; open for read
+00000198: CD 40                                                 	int	40h
+                                                                	;pop	ebp edi esi
+0000019A: 5F 5E                                                 	pop	edi esi
+                                                                	;or	eax,eax
+                                                                	;jz	file_error
+0000019C: 72 22                                                 	jc	file_error
+0000019E: 89 C3                                                 	mov	ebx,eax
+                                                                	;clc
+000001A0: C3                                                     	ret
+                                                                    adapt_path:
+000001A1: 89 D6                                                 	mov	esi,edx
+000001A3: BF 04 1D 00 00                                        	mov	edi,buffer
+                                                                      copy_path:
+000001A8: AC                                                    	lods	byte [esi]
+000001A9: 3C 5C                                                 	cmp	al,'\'
+000001AB: 75 02                                                 	jne	path_char_ok
+000001AD: B0 2F                                                 	mov	al,'/'
+                                                                      path_char_ok:
+000001AF: AA                                                    	stos	byte [edi]
+000001B0: 08 C0                                                 	or	al,al
+000001B2: 75 F4                                                 	jnz	copy_path
+000001B4: 81 FF 04 2D 00 00                                     	cmp	edi,buffer+1000h
+000001BA: 0F 87 C8 06 00 00                                     	ja	not_enough_memory
+                                                                    file_error:
+000001C0: C3                                                    	ret
+                                                                create:
+000001C1: B8 08 00 00 00                                        	mov	eax,8	; syscreat
+000001C6: EB C0                                                 	jmp	open_create_@
+                                                                	;;push	esi edi ebp
+                                                                	;push	esi edi
+                                                                	;call	adapt_path
+                                                                	;ccall	fopen,buffer,create_mode
+                                                                	;mov	eax,8	; syscreat
+                                                                	;mov	ebx,buffer
+                                                                	;xor	ecx,ecx ; ordinary file
+                                                                	;int	40h
+                                                                	;;pop	ebp edi esi
+                                                                	;pop	edi esi
+                                                                	;;or	eax,eax
+                                                                	;;jz	file_error
+                                                                	;jc	file_error
+                                                                	;mov	ebx,eax
+                                                                	;;clc
+                                                                	;ret
+                                                                close:
+                                                                	;ccall	fclose,ebx
+                                                                	; ebx = file handle
+000001C8: B8 06 00 00 00                                        	mov	eax,6	; sysclose
+000001CD: CD 40                                                 	int	40h
+000001CF: C3                                                    	ret
+                                                                read:
+                                                                	;push	ebx ecx edx esi edi
+000001D0: 51 52                                                 	push	ecx edx
+                                                                	;ccall	fread,edx,1,ecx,ebx
+                                                                	; edx = buffer
+                                                                	; ecx = byte count
+                                                                	; ebx = file handle
+000001D2: B8 03 00 00 00                                        	mov	eax,3	; sysread
+000001D7: 87 CA                                                 	xchg	ecx,edx
+000001D9: CD 40                                                 	int	40h
+                                                                	;pop	edi esi edx ecx ebx
+000001DB: 5A 59                                                 	pop	edx ecx
+000001DD: 72 E1                                                 	jc	file_error
+000001DF: 39 C8                                                 	cmp	eax,ecx
+                                                                	;jne	file_error ; eax < ecx
+                                                                	;;clc
+                                                                	;ret
+                                                                    ;file_error:
+                                                                	;stc
+000001E1: C3                                                    	ret
+                                                                write:
+                                                                	;push	ebx ecx edx esi edi
+000001E2: 51 52                                                 	push	ecx edx
+                                                                	;ccall	fwrite,edx,1,ecx,ebx
+                                                                	; edx = buffer
+                                                                	; ecx = byte count
+                                                                	; ebx = file handle
+000001E4: B8 04 00 00 00                                        	mov	eax,4	; syswrite
+000001E9: 87 CA                                                 	xchg	ecx,edx
+000001EB: CD 40                                                 	int	40h
+                                                                	;pop	edi esi edx ecx ebx
+000001ED: 5A 59                                                 	pop	edx ecx
+000001EF: 39 C8                                                 	cmp	eax,ecx
+                                                                	;jne	file_error ; eax < ecx
+                                                                	;clc
+000001F1: C3                                                    	ret
+                                                                lseek:
+                                                                	;push	ebx
+000001F2: 0F B6 C0                                              	movzx	eax,al
+                                                                	;ccall	fseek,ebx,edx,eax
+000001F5: 89 D1                                                 	mov	ecx,edx
+000001F7: 89 C2                                                 	mov	edx,eax
+                                                                	;mov	eax,19
+000001F9: B0 13                                                 	mov	al,19	; sysseek
+000001FB: CD 40                                                 	int	40h
+                                                                	;mov	ebx,[esp]
+                                                                	;ccall	ftell,ebx
+000001FD: B8 14 00 00 00                                        	mov	eax,20	; systell
+00000202: CD 40                                                 	int	40h
+                                                                	;pop	ebx
+00000204: C3                                                    	ret
+                                                                
+                                                                ;open_mode db 'r',0
+                                                                ;create_mode db 'w',0
+                                                                
+                                                                
+                                                                  include '..\listing.inc'
+                                                                
+                                                                listing:
+00000205: 8B 15 E2 0A 00 00                                     	mov	edx,[input_file]
+0000020B: E8 73 FF FF FF                                        	call	open
+00000210: 0F 82 A3 06 00 00                                     	jc	input_not_found
+00000216: E8 FD 05 00 00                                        	call	load_file
+0000021B: A3 C8 0B 00 00                                        	mov	[input],eax
+00000220: 83 F9 38                                              	cmp	ecx,38h
+00000223: 0F 82 6A 07 00 00                                     	jb	invalid_input
+00000229: 81 38 66 61 73 1A                                     	cmp	dword [eax],1A736166h
+0000022F: 0F 85 5E 07 00 00                                     	jne	invalid_input
+00000235: 83 78 2C 00                                           	cmp	dword [eax+44],0
+00000239: 0F 84 94 07 00 00                                     	je	incomplete_input
+0000023F: 01 40 10                                              	add	[eax+16],eax
+00000242: 01 40 18                                              	add	[eax+24],eax
+00000245: 01 40 20                                              	add	[eax+32],eax
+00000248: 01 40 28                                              	add	[eax+40],eax
+0000024B: 01 40 30                                              	add	[eax+48],eax
+0000024E: 8B 50 10                                              	mov	edx,[eax+16]
+00000251: 01 50 08                                              	add	[eax+8],edx
+00000254: 01 50 0C                                              	add	[eax+12],edx
+00000257: 8B 50 0C                                              	mov	edx,[eax+12]
+0000025A: E8 24 FF FF FF                                        	call	open
+0000025F: 0F 82 76 06 00 00                                     	jc	code_not_found
+00000265: E8 AE 05 00 00                                        	call	load_file
+0000026A: A3 CC 0B 00 00                                        	mov	[assembled_code],eax
+0000026F: 89 0D D0 0B 00 00                                     	mov	[assembled_code_length],ecx
+00000275: E8 4E FF FF FF                                        	call	close
+0000027A: C7 05 F8 0B 00 00 00 00 00 00                         	mov	[maximum_address_length],0
+00000284: 8B 1D C8 0B 00 00                                     	mov	ebx,[input]
+0000028A: 8B 73 28                                              	mov	esi,[ebx+40]
+0000028D: 8D 6E FC                                              	lea	ebp,[esi-4]
+00000290: 03 6B 2C                                              	add	ebp,[ebx+44]
+                                                                    get_offsets_for_lines:
+00000293: 39 EE                                                 	cmp	esi,ebp
+00000295: 0F 84 84 00 00 00                                     	je	offsets_prepared
+0000029B: 8B 56 04                                              	mov	edx,[esi+4]
+0000029E: 03 53 20                                              	add	edx,[ebx+32]
+                                                                      find_line_loaded_from_source:
+000002A1: F6 42 07 80                                           	test	byte [edx+7],1 shl 7
+000002A5: 74 08                                                 	jz	store_offset_in_line
+000002A7: 8B 52 08                                              	mov	edx,[edx+8]
+000002AA: 03 53 20                                              	add	edx,[ebx+32]
+000002AD: EB F2                                                 	jmp	find_line_loaded_from_source
+                                                                      store_offset_in_line:
+000002AF: 83 7A 0C 00                                           	cmp	dword [edx+12],0
+000002B3: 75 62                                                 	jne	get_next_offset
+000002B5: 89 72 0C                                              	mov	[edx+12],esi
+000002B8: 0F B6 4E 1B                                           	movzx	ecx,byte [esi+27]
+000002BC: 80 E1 01                                              	and	cl,1
+000002BF: 8B 7E 14                                              	mov	edi,[esi+20]
+000002C2: 85 FF                                                 	test	edi,edi
+000002C4: 74 23                                                 	jz	base_name_length_ok
+000002C6: 31 C9                                                 	xor	ecx,ecx
+000002C8: 0F BA F7 1F                                           	btr	edi,31
+000002CC: 72 09                                                 	jc	count_base_name_characters
+000002CE: 4F                                                    	dec	edi
+000002CF: C1 E7 02                                              	shl	edi,2
+000002D2: 03 7B 30                                              	add	edi,[ebx+48]
+000002D5: 8B 3F                                                 	mov	edi,[edi]
+                                                                      count_base_name_characters:
+000002D7: 8B 4B 14                                              	mov	ecx,[ebx+20]
+000002DA: 29 F9                                                 	sub	ecx,edi
+000002DC: 03 7B 10                                              	add	edi,[ebx+16]
+000002DF: 89 FA                                                 	mov	edx,edi
+000002E1: 30 C0                                                 	xor	al,al
+000002E3: F2 AE                                                 	repne	scasb
+000002E5: 89 F9                                                 	mov	ecx,edi
+000002E7: 29 D1                                                 	sub	ecx,edx
+                                                                      base_name_length_ok:
+000002E9: 80 7E 12 01                                           	cmp	byte [esi+18],1
+000002ED: 72 0A                                                 	jb	first_register_length_ok
+000002EF: 77 05                                                 	ja	first_register_with_scale
+000002F1: 83 C1 05                                              	add	ecx,5
+000002F4: EB 03                                                 	jmp	first_register_length_ok
+                                                                      first_register_with_scale:
+000002F6: 83 C1 08                                              	add	ecx,5+3
+                                                                      first_register_length_ok:
+000002F9: 80 7E 13 01                                           	cmp	byte [esi+19],1
+000002FD: 72 0A                                                 	jb	second_register_length_ok
+000002FF: 77 05                                                 	ja	second_register_with_scale
+00000301: 83 C1 05                                              	add	ecx,5
+00000304: EB 03                                                 	jmp	second_register_length_ok
+                                                                      second_register_with_scale:
+00000306: 83 C1 08                                              	add	ecx,5+3
+                                                                      second_register_length_ok:
+00000309: 3B 0D F8 0B 00 00                                     	cmp	ecx,[maximum_address_length]
+0000030F: 72 06                                                 	jb	get_next_offset
+00000311: 89 0D F8 0B 00 00                                     	mov	[maximum_address_length],ecx
+                                                                      get_next_offset:
+00000317: 83 C6 1C                                              	add	esi,28
+0000031A: E9 74 FF FF FF                                        	jmp	get_offsets_for_lines
+                                                                    offsets_prepared:
+0000031F: 8B 06                                                 	mov	eax,[esi]
+00000321: A3 D4 0B 00 00                                        	mov	[code_end],eax
+00000326: 83 05 F8 0B 00 00 13                                  	add	[maximum_address_length],19
+0000032D: BF 04 1C 00 00                                        	mov	edi,characters
+00000332: 30 C0                                                 	xor	al,al
+                                                                      make_characters_table:
+00000334: AA                                                    	stosb
+00000335: FE C0                                                 	inc	al
+00000337: 75 FB                                                 	jnz	make_characters_table
+00000339: BF 04 1C 00 00                                        	mov	edi,characters
+0000033E: BE 06 0A 00 00                                        	mov	esi,symbol_characters+1
+00000343: 0F B6 4E FF                                           	movzx	ecx,byte [esi-1]
+00000347: 31 C0                                                 	xor	eax,eax
+                                                                      mark_symbol_characters:
+00000349: AC                                                    	lodsb
+0000034A: C6 04 07 00                                           	mov	byte [edi+eax],0
+0000034E: E2 F9                                                 	loop	mark_symbol_characters
+00000350: A1 EA 0A 00 00                                        	mov	eax,[code_bytes_per_line]
+00000355: 6B C0 03                                              	imul	eax,3
+00000358: 03 05 F8 0B 00 00                                     	add	eax,[maximum_address_length]
+0000035E: 83 C0 12                                              	add	eax,18
+00000361: E8 AB FD FF FF                                        	call	alloc
+00000366: 0F 82 1C 05 00 00                                     	jc	not_enough_memory
+0000036C: A3 E4 0B 00 00                                        	mov	[output_buffer],eax
+00000371: 8B 73 20                                              	mov	esi,[ebx+32]
+00000374: 89 F5                                                 	mov	ebp,esi
+00000376: 03 6B 24                                              	add	ebp,[ebx+36]
+00000379: 8B 15 E6 0A 00 00                                     	mov	edx,[output_file]
+0000037F: E8 3D FE FF FF                                        	call	create
+00000384: 0F 82 D6 05 00 00                                     	jc	writing_error
+0000038A: 89 1D E0 0B 00 00                                     	mov	[output_handle],ebx
+00000390: 31 C0                                                 	xor	eax,eax
+00000392: A3 E8 0B 00 00                                        	mov	[current_source_file],eax
+00000397: A3 00 0C 00 00                                        	mov	[last_listed_address],eax
+0000039C: A3 DC 0B 00 00                                        	mov	[code_length],eax
+                                                                    generate_listing:
+000003A1: 39 EE                                                 	cmp	esi,ebp
+000003A3: 0F 83 63 04 00 00                                     	jae	listing_done
+000003A9: 8B 3D E4 0B 00 00                                     	mov	edi,[output_buffer]
+000003AF: F6 46 07 80                                           	test	byte [esi+7],1 shl 7
+000003B3: 0F 85 4B 01 00 00                                     	jnz	next_line
+000003B9: 8B 5E 0C                                              	mov	ebx,[esi+12]
+000003BC: 85 DB                                                 	test	ebx,ebx
+000003BE: 74 7A                                                 	jz	no_code_listing
+000003C0: F6 43 1A 03                                           	test	byte [ebx+26],11b
+000003C4: 75 74                                                 	jnz	no_code_listing
+000003C6: 56                                                    	push	esi
+000003C7: 8B 16                                                 	mov	edx,[esi]
+000003C9: 8B 4E 04                                              	mov	ecx,[esi+4]
+                                                                     find_next_code_point:
+000003CC: 83 C6 10                                              	add	esi,16
+000003CF: E8 95 04 00 00                                        	call	skip_preprocessed_line
+000003D4: 39 EE                                                 	cmp	esi,ebp
+000003D6: 74 20                                                 	je	last_code_point
+000003D8: 3B 16                                                 	cmp	edx,[esi]
+000003DA: 75 05                                                 	jne	next_line_ok
+000003DC: 3B 4E 04                                              	cmp	ecx,[esi+4]
+000003DF: 74 EB                                                 	je	find_next_code_point
+                                                                     next_line_ok:
+000003E1: F6 46 07 80                                           	test	byte [esi+7],1 shl 7
+000003E5: 75 E5                                                 	jnz	find_next_code_point
+000003E7: 8B 46 0C                                              	mov	eax,[esi+12]
+000003EA: 85 C0                                                 	test	eax,eax
+000003EC: 74 DE                                                 	jz	find_next_code_point
+000003EE: F6 40 1A 03                                           	test	byte [eax+26],11b
+000003F2: 75 D8                                                 	jnz	find_next_code_point
+000003F4: 8B 00                                                 	mov	eax,[eax]
+000003F6: EB 05                                                 	jmp	calculate_code_length
+                                                                     last_code_point:
+000003F8: A1 D4 0B 00 00                                        	mov	eax,[code_end]
+                                                                     calculate_code_length:
+000003FD: 5E                                                    	pop	esi
+000003FE: 8B 13                                                 	mov	edx,[ebx]
+00000400: 29 D0                                                 	sub	eax,edx
+00000402: 74 36                                                 	jz	no_code_listing
+00000404: A3 DC 0B 00 00                                        	mov	[code_length],eax
+00000409: 89 15 D8 0B 00 00                                     	mov	[code_offset],edx
+0000040F: 01 D0                                                 	add	eax,edx
+00000411: 3B 05 D0 0B 00 00                                     	cmp	eax,[assembled_code_length]
+00000417: 76 0A                                                 	jbe	write_file_offset
+00000419: C7 05 DC 0B 00 00 00 00 00 00                         	mov	[code_length],0
+                                                                      write_file_offset:
+00000423: E8 2A 04 00 00                                        	call	write_hex_dword
+00000428: 66 B8 3A 20                                           	mov	ax,': '
+0000042C: 66 AB                                                 	stosw
+0000042E: E8 F1 00 00 00                                        	call	list_address
+00000433: E8 30 02 00 00                                        	call	list_code
+00000438: EB 1B                                                 	jmp	code_listing_ok
+                                                                      no_code_listing:
+0000043A: B0 20                                                 	mov	al,20h
+0000043C: B9 0A 00 00 00                                        	mov	ecx,8+2
+00000441: F3 AA                                                 	rep	stosb
+00000443: E8 DC 00 00 00                                        	call	list_address
+00000448: 8B 0D EA 0A 00 00                                     	mov	ecx,[code_bytes_per_line]
+0000044E: 6B C9 03                                              	imul	ecx,3
+00000451: B0 20                                                 	mov	al,20h
+00000453: F3 AA                                                 	rep	stosb
+                                                                      code_listing_ok:
+00000455: E8 6B 02 00 00                                        	call	write_listing_data
+0000045A: A1 C8 0B 00 00                                        	mov	eax,[input]
+0000045F: 8B 16                                                 	mov	edx,[esi]
+00000461: 85 D2                                                 	test	edx,edx
+00000463: 74 05                                                 	jz	main_source_file
+00000465: 03 50 20                                              	add	edx,[eax+32]
+00000468: EB 03                                                 	jmp	source_name_ok
+                                                                      main_source_file:
+0000046A: 8B 50 08                                              	mov	edx,[eax+8]
+                                                                      source_name_ok:
+0000046D: 3B 15 E8 0B 00 00                                     	cmp	edx,[current_source_file]
+00000473: 74 38                                                 	je	source_loaded
+00000475: 53                                                    	push	ebx
+00000476: 52                                                    	push	edx
+00000477: E8 07 FD FF FF                                        	call	open
+0000047C: 0F 82 7F 04 00 00                                     	jc	source_not_found
+00000482: 58                                                    	pop	eax
+00000483: 87 05 E8 0B 00 00                                     	xchg	eax,[current_source_file]
+00000489: 85 C0                                                 	test	eax,eax
+0000048B: 74 0A                                                 	jz	load_source
+0000048D: A1 F0 0B 00 00                                        	mov	eax,[source]
+00000492: E8 AD FC FF FF                                        	call	free
+                                                                      load_source:
+00000497: E8 7C 03 00 00                                        	call	load_file
+0000049C: A3 F0 0B 00 00                                        	mov	[source],eax
+000004A1: 89 0D F4 0B 00 00                                     	mov	[source_length],ecx
+000004A7: E8 1C FD FF FF                                        	call	close
+000004AC: 5B                                                    	pop	ebx
+                                                                      source_loaded:
+000004AD: A1 F0 0B 00 00                                        	mov	eax,[source]
+000004B2: 03 46 08                                              	add	eax,[esi+8]
+000004B5: A3 EC 0B 00 00                                        	mov	[current_source_line],eax
+000004BA: 56 55                                                 	push	esi ebp
+000004BC: E8 2F 02 00 00                                        	call	write_source_line
+000004C1: 5D 5E                                                 	pop	ebp esi
+                                                                      write_supplemental_rows:
+000004C3: A1 DC 0B 00 00                                        	mov	eax,[code_length]
+000004C8: 0B 05 EC 0B 00 00                                     	or	eax,[current_source_line]
+000004CE: 74 34                                                 	jz	next_line
+000004D0: 8B 3D E4 0B 00 00                                     	mov	edi,[output_buffer]
+000004D6: B9 0A 00 00 00                                        	mov	ecx,8+2
+000004DB: 0F B6 05 EE 0A 00 00                                  	movzx	eax,[show_addresses]
+000004E2: 0F AF 05 F8 0B 00 00                                  	imul	eax,[maximum_address_length]
+000004E9: 01 C1                                                 	add	ecx,eax
+000004EB: B0 20                                                 	mov	al,20h
+000004ED: F3 AA                                                 	rep	stosb
+000004EF: E8 74 01 00 00                                        	call	list_code
+000004F4: E8 CC 01 00 00                                        	call	write_listing_data
+000004F9: 56 55                                                 	push	esi ebp
+000004FB: E8 F0 01 00 00                                        	call	write_source_line
+00000500: 5D 5E                                                 	pop	ebp esi
+00000502: EB BF                                                 	jmp	write_supplemental_rows
+                                                                      next_line:
+00000504: 8B 16                                                 	mov	edx,[esi]
+00000506: 8B 4E 04                                              	mov	ecx,[esi+4]
+                                                                      find_next_line:
+00000509: 83 C6 10                                              	add	esi,16
+0000050C: E8 58 03 00 00                                        	call	skip_preprocessed_line
+00000511: 3B 16                                                 	cmp	edx,[esi]
+00000513: 0F 85 88 FE FF FF                                     	jne	generate_listing
+00000519: 3B 4E 04                                              	cmp	ecx,[esi+4]
+0000051C: 0F 85 7F FE FF FF                                     	jne	generate_listing
+00000522: EB E5                                                 	jmp	find_next_line
+                                                                    list_address:
+00000524: 80 3D EE 0A 00 00 00                                  	cmp	[show_addresses],0
+0000052B: 0F 84 E3 00 00 00                                     	je	address_ok
+00000531: 89 3D FC 0B 00 00                                     	mov	[address_start],edi
+00000537: 8B 46 0C                                              	mov	eax,[esi+12]
+0000053A: 85 C0                                                 	test	eax,eax
+0000053C: 0F 84 C0 00 00 00                                     	jz	address_finished
+00000542: 83 3D 00 0C 00 00 00                                  	cmp	[last_listed_address],0
+00000549: 74 1A                                                 	je	make_address
+0000054B: 56 57                                                 	push	esi edi
+0000054D: 8D 70 08                                              	lea	esi,[eax+8]
+00000550: 8B 3D 00 0C 00 00                                     	mov	edi,[last_listed_address]
+00000556: B9 11 00 00 00                                        	mov	ecx,17
+0000055B: F3 A6                                                 	repe	cmpsb
+0000055D: 5F 5E                                                 	pop	edi esi
+0000055F: 0F 84 9D 00 00 00                                     	je	address_finished
+                                                                      make_address:
+00000565: 8B 5E 0C                                              	mov	ebx,[esi+12]
+00000568: 8D 43 08                                              	lea	eax,[ebx+8]
+0000056B: A3 00 0C 00 00                                        	mov	[last_listed_address],eax
+00000570: B0 5B                                                 	mov	al,'['
+00000572: AA                                                    	stosb
+00000573: 8B 53 14                                              	mov	edx,[ebx+20]
+00000576: 85 D2                                                 	test	edx,edx
+00000578: 74 36                                                 	jz	write_main_address
+0000057A: 56                                                    	push	esi
+0000057B: 89 D6                                                 	mov	esi,edx
+0000057D: A1 C8 0B 00 00                                        	mov	eax,[input]
+00000582: 0F BA F6 1F                                           	btr	esi,31
+00000586: 72 09                                                 	jc	base_name_ready
+00000588: 4E                                                    	dec	esi
+00000589: C1 E6 02                                              	shl	esi,2
+0000058C: 03 70 30                                              	add	esi,[eax+48]
+0000058F: 8B 36                                                 	mov	esi,[esi]
+                                                                      base_name_ready:
+00000591: 03 70 10                                              	add	esi,[eax+16]
+                                                                      copy_section_name:
+00000594: AC                                                    	lodsb
+00000595: 84 C0                                                 	test	al,al
+00000597: 74 03                                                 	jz	section_name_ok
+00000599: AA                                                    	stosb
+0000059A: EB F8                                                 	jmp	copy_section_name
+                                                                      section_name_ok:
+0000059C: 5E                                                    	pop	esi
+0000059D: B0 3A                                                 	mov	al,':'
+0000059F: F7 C2 00 00 00 80                                     	test	edx,80000000h
+000005A5: 74 08                                                 	jz	address_separator_ok
+000005A7: 80 7B 1B 00                                           	cmp	byte [ebx+27],0
+000005AB: 75 02                                                 	jne	address_separator_ok
+000005AD: B0 2B                                                 	mov	al,'+'
+                                                                      address_separator_ok:
+000005AF: AA                                                    	stosb
+                                                                      write_main_address:
+000005B0: 80 7B 1B 00                                           	cmp	byte [ebx+27],0
+000005B4: 75 12                                                 	jne	write_negative_address
+000005B6: 8B 53 0C                                              	mov	edx,[ebx+8+4]
+000005B9: E8 94 02 00 00                                        	call	write_hex_dword
+000005BE: 8B 53 08                                              	mov	edx,[ebx+8]
+000005C1: E8 8C 02 00 00                                        	call	write_hex_dword
+000005C6: EB 1F                                                 	jmp	write_address_registers
+                                                                      write_negative_address:
+000005C8: B0 2D                                                 	mov	al,'-'
+000005CA: AA                                                    	stosb
+000005CB: 8B 43 08                                              	mov	eax,[ebx+8]
+000005CE: 8B 53 0C                                              	mov	edx,[ebx+8+4]
+000005D1: F7 D0                                                 	not	eax
+000005D3: F7 D2                                                 	not	edx
+000005D5: 83 C0 01                                              	add	eax,1
+000005D8: 83 D2 00                                              	adc	edx,0
+000005DB: 50                                                    	push	eax
+000005DC: E8 71 02 00 00                                        	call	write_hex_dword
+000005E1: 5A                                                    	pop	edx
+000005E2: E8 6B 02 00 00                                        	call	write_hex_dword
+                                                                      write_address_registers:
+000005E7: 8A 53 10                                              	mov	dl,[ebx+16]
+000005EA: 8A 73 12                                              	mov	dh,[ebx+18]
+000005ED: E8 23 00 00 00                                        	call	address_register
+000005F2: 8A 53 11                                              	mov	dl,[ebx+17]
+000005F5: 8A 73 13                                              	mov	dh,[ebx+19]
+000005F8: E8 18 00 00 00                                        	call	address_register
+000005FD: 66 B8 5D 00                                           	mov	ax,']'
+00000601: AA                                                    	stosb
+                                                                      address_finished:
+00000602: 8B 0D F8 0B 00 00                                     	mov	ecx,[maximum_address_length]
+00000608: 29 F9                                                 	sub	ecx,edi
+0000060A: 03 0D FC 0B 00 00                                     	add	ecx,[address_start]
+00000610: B0 20                                                 	mov	al,20h
+00000612: F3 AA                                                 	rep	stosb
+                                                                      address_ok:
+00000614: C3                                                    	ret
+                                                                      address_register:
+00000615: 80 FE 00                                              	cmp	dh,0
+00000618: 74 4D                                                 	je	register_ok
+0000061A: 7C 04                                                 	jl	negative_register
+0000061C: B0 2B                                                 	mov	al,'+'
+0000061E: EB 02                                                 	jmp	register_sign_ok
+                                                                      negative_register:
+00000620: B0 2D                                                 	mov	al,'-'
+                                                                      register_sign_ok:
+00000622: AA                                                    	stosb
+00000623: 56                                                    	push	esi
+00000624: BE 21 0A 00 00                                        	mov	esi,address_registers
+                                                                      find_register:
+00000629: AC                                                    	lodsb
+0000062A: 84 C0                                                 	test	al,al
+0000062C: 74 10                                                 	jz	register_found
+0000062E: 38 D0                                                 	cmp	al,dl
+00000630: 74 0C                                                 	je	register_found
+00000632: 3A 16                                                 	cmp	dl,[esi]
+00000634: 74 08                                                 	je	register_found
+00000636: AC                                                    	lodsb
+00000637: 0F B6 C0                                              	movzx	eax,al
+0000063A: 01 C6                                                 	add	esi,eax
+0000063C: EB EB                                                 	jmp	find_register
+                                                                      register_found:
+0000063E: AC                                                    	lodsb
+0000063F: 0F B6 C8                                              	movzx	ecx,al
+00000642: F3 A4                                                 	rep	movsb
+00000644: 5E                                                    	pop	esi
+00000645: 80 FE 01                                              	cmp	dh,1
+00000648: 74 1D                                                 	je	register_ok
+0000064A: B0 2A                                                 	mov	al,'*'
+0000064C: AA                                                    	stosb
+0000064D: F6 C6 F0                                              	test	dh,0F0h
+00000650: 74 0B                                                 	jz	first_scale_digit_ok
+00000652: 88 F0                                                 	mov	al,dh
+00000654: C0 E8 04                                              	shr	al,4
+00000657: 3C 0A                                                 	cmp	al,10
+00000659: 1C 69                                                 	sbb	al,69h
+0000065B: 2F                                                    	das
+0000065C: AA                                                    	stosb
+                                                                      first_scale_digit_ok:
+0000065D: 88 F0                                                 	mov	al,dh
+0000065F: 24 0F                                                 	and	al,1111b
+00000661: 3C 0A                                                 	cmp	al,10
+00000663: 1C 69                                                 	sbb	al,69h
+00000665: 2F                                                    	das
+00000666: AA                                                    	stosb
+                                                                      register_ok:
+00000667: C3                                                    	ret
+                                                                    list_code:
+00000668: 8B 0D DC 0B 00 00                                     	mov	ecx,[code_length]
+0000066E: 3B 0D EA 0A 00 00                                     	cmp	ecx,[code_bytes_per_line]
+00000674: 72 06                                                 	jb	code_bytes_count_ready
+00000676: 8B 0D EA 0A 00 00                                     	mov	ecx,[code_bytes_per_line]
+                                                                      code_bytes_count_ready:
+0000067C: 29 0D DC 0B 00 00                                     	sub	[code_length],ecx
+00000682: 8B 15 D8 0B 00 00                                     	mov	edx,[code_offset]
+00000688: 01 0D D8 0B 00 00                                     	add	[code_offset],ecx
+0000068E: E3 25                                                 	jecxz	code_bytes_ok
+00000690: 51                                                    	push	ecx
+00000691: 03 15 CC 0B 00 00                                     	add	edx,[assembled_code]
+                                                                      list_code_bytes:
+00000697: 8A 02                                                 	mov	al,[edx]
+00000699: 24 0F                                                 	and	al,1111b
+0000069B: 3C 0A                                                 	cmp	al,10
+0000069D: 1C 69                                                 	sbb	al,69h
+0000069F: 2F                                                    	das
+000006A0: 88 C4                                                 	mov	ah,al
+000006A2: 8A 02                                                 	mov	al,[edx]
+000006A4: C0 E8 04                                              	shr	al,4
+000006A7: 3C 0A                                                 	cmp	al,10
+000006A9: 1C 69                                                 	sbb	al,69h
+000006AB: 2F                                                    	das
+000006AC: 66 AB                                                 	stosw
+000006AE: B0 20                                                 	mov	al,20h
+000006B0: AA                                                    	stosb
+000006B1: 42                                                    	inc	edx
+000006B2: E2 E3                                                 	loop	list_code_bytes
+000006B4: 59                                                    	pop	ecx
+                                                                      code_bytes_ok:
+000006B5: F7 D9                                                 	neg	ecx
+000006B7: 03 0D EA 0A 00 00                                     	add	ecx,[code_bytes_per_line]
+000006BD: 6B C9 03                                              	imul	ecx,3
+000006C0: B0 20                                                 	mov	al,20h
+000006C2: F3 AA                                                 	rep	stosb
+000006C4: C3                                                    	ret
+                                                                    write_listing_data:
+000006C5: 8B 0D E4 0B 00 00                                     	mov	ecx,[output_buffer]
+000006CB: 29 F9                                                 	sub	ecx,edi
+000006CD: 83 E1 07                                              	and	ecx,111b
+000006D0: B0 20                                                 	mov	al,20h
+000006D2: F3 AA                                                 	rep	stosb
+000006D4: 8B 15 E4 0B 00 00                                     	mov	edx,[output_buffer]
+000006DA: 89 F9                                                 	mov	ecx,edi
+000006DC: 29 D1                                                 	sub	ecx,edx
+000006DE: 8B 1D E0 0B 00 00                                     	mov	ebx,[output_handle]
+000006E4: E8 F9 FA FF FF                                        	call	write
+000006E9: 0F 82 71 02 00 00                                     	jc	writing_error
+000006EF: C3                                                    	ret
+                                                                    write_source_line:
+000006F0: 8B 35 EC 0B 00 00                                     	mov	esi,[current_source_line]
+000006F6: 85 F6                                                 	test	esi,esi
+000006F8: 0F 84 EE 00 00 00                                     	je	write_line_break
+000006FE: 8B 2D F4 0B 00 00                                     	mov	ebp,[source_length]
+00000704: 03 2D F0 0B 00 00                                     	add	ebp,[source]
+0000070A: BB 04 1C 00 00                                        	mov	ebx,characters
+0000070F: 30 C9                                                 	xor	cl,cl
+                                                                      start_cutting:
+00000711: 30 D2                                                 	xor	dl,dl
+                                                                      cut_source_line:
+00000713: 39 EE                                                 	cmp	esi,ebp
+00000715: 0F 84 AD 00 00 00                                     	je	end_of_file
+0000071B: AC                                                    	lodsb
+0000071C: 3C 0D                                                 	cmp	al,0Dh
+0000071E: 74 6C                                                 	je	cr_character
+00000720: 3C 0A                                                 	cmp	al,0Ah
+00000722: 0F 84 81 00 00 00                                     	je	lf_character
+00000728: 3C 1A                                                 	cmp	al,1Ah
+0000072A: 0F 84 97 00 00 00                                     	je	end_of_line
+00000730: 08 C0                                                 	or	al,al
+00000732: 0F 84 8F 00 00 00                                     	jz	end_of_line
+00000738: 80 FA 3B                                              	cmp	dl,3Bh
+0000073B: 74 D6                                                 	je	cut_source_line
+0000073D: 3C 3B                                                 	cmp	al,3Bh
+0000073F: 74 24                                                 	je	start_special_block
+00000741: 80 FA 22                                              	cmp	dl,22h
+00000744: 74 23                                                 	je	inside_string
+00000746: 80 FA 27                                              	cmp	dl,27h
+00000749: 74 1E                                                 	je	inside_string
+0000074B: 3C 5C                                                 	cmp	al,'\'
+0000074D: 74 20                                                 	je	check_for_line_continuation
+0000074F: D7                                                    	xlatb
+00000750: 84 C0                                                 	test	al,al
+00000752: 74 BD                                                 	jz	start_cutting
+00000754: 80 FA FF                                              	cmp	dl,0FFh
+00000757: 74 BA                                                 	je	cut_source_line
+00000759: 3C 22                                                 	cmp	al,22h
+0000075B: 74 08                                                 	je	start_special_block
+0000075D: 3C 27                                                 	cmp	al,27h
+0000075F: 74 04                                                 	je	start_special_block
+00000761: B2 FF                                                 	mov	dl,0FFh
+00000763: EB AE                                                 	jmp	cut_source_line
+                                                                      start_special_block:
+00000765: 88 C2                                                 	mov	dl,al
+00000767: EB AA                                                 	jmp	cut_source_line
+                                                                      inside_string:
+00000769: 38 D0                                                 	cmp	al,dl
+0000076B: 75 A6                                                 	jne	cut_source_line
+0000076D: EB A2                                                 	jmp	start_cutting
+                                                                      check_for_line_continuation:
+0000076F: 80 C9 FF                                              	or	cl,0FFh
+00000772: 39 EE                                                 	cmp	esi,ebp
+00000774: 74 52                                                 	je	end_of_file
+00000776: 8A 06                                                 	mov	al,[esi]
+00000778: 3C 20                                                 	cmp	al,20h
+0000077A: 74 95                                                 	je	start_cutting
+0000077C: 3C 0D                                                 	cmp	al,0Dh
+0000077E: 74 91                                                 	je	start_cutting
+00000780: 3C 0A                                                 	cmp	al,0Ah
+00000782: 74 8D                                                 	je	start_cutting
+00000784: 3C 3B                                                 	cmp	al,3Bh
+00000786: 74 89                                                 	je	start_cutting
+00000788: 30 C9                                                 	xor	cl,cl
+0000078A: EB 85                                                 	jmp	start_cutting
+                                                                      cr_character:
+0000078C: 89 F2                                                 	mov	edx,esi
+0000078E: 66 C7 05 EF 0A 00 00 0D 00                            	mov	word [line_break],0Dh
+00000797: 39 EE                                                 	cmp	esi,ebp
+00000799: 74 29                                                 	je	line_with_break
+0000079B: 8A 06                                                 	mov	al,[esi]
+0000079D: 3C 0A                                                 	cmp	al,0Ah
+0000079F: 75 23                                                 	jne	line_with_break
+000007A1: 42                                                    	inc	edx
+000007A2: A2 F0 0A 00 00                                        	mov	[line_break+1],al
+000007A7: EB 1B                                                 	jmp	line_with_break
+                                                                      lf_character:
+000007A9: 89 F2                                                 	mov	edx,esi
+000007AB: 66 C7 05 EF 0A 00 00 0A 00                            	mov	word [line_break],0Ah
+000007B4: 39 EE                                                 	cmp	esi,ebp
+000007B6: 74 0C                                                 	je	line_with_break
+000007B8: 8A 06                                                 	mov	al,[esi]
+000007BA: 3C 0D                                                 	cmp	al,0Dh
+000007BC: 75 06                                                 	jne	line_with_break
+000007BE: 42                                                    	inc	edx
+000007BF: A2 F0 0A 00 00                                        	mov	[line_break+1],al
+                                                                      line_with_break:
+000007C4: 4E                                                    	dec	esi
+000007C5: EB 03                                                 	jmp	write_line
+                                                                      end_of_line:
+000007C7: 4E                                                    	dec	esi
+                                                                      end_of_file:
+000007C8: 89 F2                                                 	mov	edx,esi
+                                                                      write_line:
+000007CA: 80 F9 FF                                              	cmp	cl,0FFh
+000007CD: 74 02                                                 	je	continued_line
+000007CF: 31 D2                                                 	xor	edx,edx
+                                                                      continued_line:
+000007D1: 87 15 EC 0B 00 00                                     	xchg	edx,[current_source_line]
+000007D7: 89 F1                                                 	mov	ecx,esi
+000007D9: 29 D1                                                 	sub	ecx,edx
+000007DB: 8B 1D E0 0B 00 00                                     	mov	ebx,[output_handle]
+000007E1: E8 FC F9 FF FF                                        	call	write
+000007E6: 0F 82 74 01 00 00                                     	jc	writing_error
+                                                                      write_line_break:
+000007EC: BA EF 0A 00 00                                        	mov	edx,line_break
+000007F1: B9 02 00 00 00                                        	mov	ecx,2
+000007F6: 80 3D F0 0A 00 00 00                                  	cmp	[line_break+1],0
+000007FD: 75 01                                                 	jne	line_break_size_ok
+000007FF: 49                                                    	dec	ecx
+                                                                      line_break_size_ok:
+00000800: E8 DD F9 FF FF                                        	call	write
+00000805: 0F 82 55 01 00 00                                     	jc	writing_error
+0000080B: C3                                                    	ret
+                                                                    listing_done:
+0000080C: 8B 1D E0 0B 00 00                                     	mov	ebx,[output_handle]
+00000812: E8 B1 F9 FF FF                                        	call	close
+00000817: C3                                                    	ret
+                                                                
+                                                                load_file:
+00000818: 53                                                    	push	ebx
+00000819: B0 02                                                 	mov	al,2
+0000081B: 31 D2                                                 	xor	edx,edx
+0000081D: E8 D0 F9 FF FF                                        	call	lseek
+00000822: 85 C0                                                 	test	eax,eax
+00000824: 74 28                                                 	jz	empty_file
+00000826: 50                                                    	push	eax
+00000827: E8 E5 F8 FF FF                                        	call	alloc
+0000082C: 72 5A                                                 	jc	not_enough_memory
+0000082E: 50                                                    	push	eax
+0000082F: 30 C0                                                 	xor	al,al
+00000831: 31 D2                                                 	xor	edx,edx
+00000833: E8 BA F9 FF FF                                        	call	lseek
+00000838: 8B 4C 24 04                                           	mov	ecx,[esp+4]
+0000083C: 8B 14 24                                              	mov	edx,[esp]
+0000083F: E8 8C F9 FF FF                                        	call	read
+00000844: 0F 82 E4 00 00 00                                     	jc	reading_error
+0000084A: 58 59                                                 	pop	eax ecx
+0000084C: 5B                                                    	pop	ebx
+0000084D: C3                                                    	ret
+                                                                      empty_file:
+0000084E: 5B                                                    	pop	ebx
+0000084F: 89 C1                                                 	mov	ecx,eax
+00000851: C3                                                    	ret
+                                                                
+                                                                write_hex_dword:
+00000852: B9 08 00 00 00                                        	mov	ecx,8
+                                                                      write_hex_digits:
+00000857: 30 C0                                                 	xor	al,al
+00000859: 0F A4 D0 04                                           	shld	eax,edx,4
+0000085D: 3C 0A                                                 	cmp	al,10
+0000085F: 1C 69                                                 	sbb	al,69h
+00000861: 2F                                                    	das
+00000862: AA                                                    	stosb
+00000863: C1 E2 04                                              	shl	edx,4
+00000866: E2 EF                                                 	loop	write_hex_digits
+00000868: C3                                                    	ret
+                                                                
+                                                                skip_preprocessed_line:
+00000869: AC                                                    	lods	byte [esi]
+0000086A: 3C 1A                                                 	cmp	al,1Ah
+0000086C: 74 0D                                                 	je	skip_preprocessed_symbol
+0000086E: 3C 3B                                                 	cmp	al,3Bh
+00000870: 74 09                                                 	je	skip_preprocessed_symbol
+00000872: 3C 22                                                 	cmp	al,22h
+00000874: 74 0D                                                 	je	skip_preprocessed_string
+00000876: 08 C0                                                 	or	al,al
+00000878: 75 EF                                                 	jnz	skip_preprocessed_line
+0000087A: C3                                                    	ret
+                                                                      skip_preprocessed_symbol:
+0000087B: AC                                                    	lods	byte [esi]
+0000087C: 0F B6 C0                                              	movzx	eax,al
+0000087F: 01 C6                                                 	add	esi,eax
+00000881: EB E6                                                 	jmp	skip_preprocessed_line
+                                                                      skip_preprocessed_string:
+00000883: AD                                                    	lods	dword [esi]
+00000884: 01 C6                                                 	add	esi,eax
+00000886: EB E1                                                 	jmp	skip_preprocessed_line
+                                                                
+                                                                
+                                                                not_enough_memory:
+00000888: E8 B1 F7 FF FF                                        	call	error
+0000088D: 6E 6F 74 20 65 6E 6F 75 67 68 20 6D 65 6D 6F 72       	db	'not enough memory to load the required data',0
+          79 20 74 6F 20 6C 6F 61 64 20 74 68 65 20 72 65       
+          71 75 69 72 65 64 20 64 61 74 61 00                   
+                                                                input_not_found:
+000008B9: E8 80 F7 FF FF                                        	call	error
+000008BE: 74 68 65 20 69 6E 70 75 74 20 66 69 6C 65 20 77       	db	'the input file was not found',0
+          61 73 20 6E 6F 74 20 66 6F 75 6E 64 00                
+                                                                code_not_found:
+000008DB: E8 5E F7 FF FF                                        	call	error
+000008E0: 74 68 65 20 61 73 73 65 6D 62 6C 65 64 20 66 69       	db	'the assembled file was not found',0
+          6C 65 20 77 61 73 20 6E 6F 74 20 66 6F 75 6E 64       
+          00                                                    
+                                                                source_not_found:
+00000901: E8 38 F7 FF FF                                        	call	error
+00000906: 63 6F 75 6C 64 20 6E 6F 74 20 66 69 6E 64 20 73       	db	'could not find some of the source files',0
+          6F 6D 65 20 6F 66 20 74 68 65 20 73 6F 75 72 63       
+          65 20 66 69 6C 65 73 00                               
+                                                                reading_error:
+0000092E: E8 0B F7 FF FF                                        	call	error
+00000933: 73 6F 6D 65 20 65 72 72 6F 72 20 6F 63 63 75 72       	db	'some error occured while trying to read file',0
+          65 64 20 77 68 69 6C 65 20 74 72 79 69 6E 67 20       
+          74 6F 20 72 65 61 64 20 66 69 6C 65 00                
+                                                                writing_error:
+00000960: E8 D9 F6 FF FF                                        	call	error
+00000965: 73 6F 6D 65 20 65 72 72 6F 72 20 6F 63 63 75 72       	db	'some error occured while trying to write file',0
+          65 64 20 77 68 69 6C 65 20 74 72 79 69 6E 67 20       
+          74 6F 20 77 72 69 74 65 20 66 69 6C 65 00             
+                                                                invalid_input:
+00000993: E8 A6 F6 FF FF                                        	call	error
+00000998: 69 6E 70 75 74 20 66 69 6C 65 20 69 73 20 6E 6F       	db	'input file is not a recognized assembly information format',0
+          74 20 61 20 72 65 63 6F 67 6E 69 7A 65 64 20 61       
+          73 73 65 6D 62 6C 79 20 69 6E 66 6F 72 6D 61 74       
+          69 6F 6E 20 66 6F 72 6D 61 74 00                      
+                                                                incomplete_input:
+000009D3: E8 66 F6 FF FF                                        	call	error
+000009D8: 69 6E 70 75 74 20 66 69 6C 65 20 64 6F 65 73 20       	db	'input file does not contain an assembly dump',0
+          6E 6F 74 20 63 6F 6E 74 61 69 6E 20 61 6E 20 61       
+          73 73 65 6D 62 6C 79 20 64 75 6D 70 00                
+                                                                
+00000A05: 1B 09 0A 0D 1A 20 2B 2D 2F 2A 3D 3C 3E 28 29 5B       symbol_characters db 27, 9,0Ah,0Dh,1Ah,20h,'+-/*=<>()[]{}:,|&~#`;\'
+          5D 7B 7D 3A 2C 7C 26 7E 23 60 3B 5C                   
+                                                                
+00000A21: 23 02 62 78                                           address_registers db 23h,2,'bx'
+00000A25: 25 02 62 70                                           		  db 25h,2,'bp'
+00000A29: 26 02 73 69                                           		  db 26h,2,'si'
+00000A2D: 27 02 64 69                                           		  db 27h,2,'di'
+00000A31: 40 03 65 61 78                                        		  db 40h,3,'eax'
+00000A36: 41 03 65 63 78                                        		  db 41h,3,'ecx'
+00000A3B: 42 03 65 64 78                                        		  db 42h,3,'edx'
+00000A40: 43 03 65 62 78                                        		  db 43h,3,'ebx'
+00000A45: 44 03 65 73 70                                        		  db 44h,3,'esp'
+00000A4A: 45 03 65 62 70                                        		  db 45h,3,'ebp'
+00000A4F: 46 03 65 73 69                                        		  db 46h,3,'esi'
+00000A54: 47 03 65 64 69                                        		  db 47h,3,'edi'
+00000A59: 48 03 72 38 64                                        		  db 48h,3,'r8d'
+00000A5E: 49 03 72 39 64                                        		  db 49h,3,'r9d'
+00000A63: 4A 04 72 31 30 64                                     		  db 4Ah,4,'r10d'
+00000A69: 4B 04 72 31 31 64                                     		  db 4Bh,4,'r11d'
+00000A6F: 4C 04 72 31 32 64                                     		  db 4Ch,4,'r12d'
+00000A75: 4D 04 72 31 33 64                                     		  db 4Dh,4,'r13d'
+00000A7B: 4E 04 72 31 34 64                                     		  db 4Eh,4,'r14d'
+00000A81: 4F 04 72 31 35 64                                     		  db 4Fh,4,'r15d'
+00000A87: 80 03 72 61 78                                        		  db 80h,3,'rax'
+00000A8C: 81 03 72 63 78                                        		  db 81h,3,'rcx'
+00000A91: 82 03 72 64 78                                        		  db 82h,3,'rdx'
+00000A96: 83 03 72 62 78                                        		  db 83h,3,'rbx'
+00000A9B: 84 03 72 73 70                                        		  db 84h,3,'rsp'
+00000AA0: 85 03 72 62 70                                        		  db 85h,3,'rbp'
+00000AA5: 86 03 72 73 69                                        		  db 86h,3,'rsi'
+00000AAA: 87 03 72 64 69                                        		  db 87h,3,'rdi'
+00000AAF: 88 02 72 38                                           		  db 88h,2,'r8'
+00000AB3: 89 02 72 39                                           		  db 89h,2,'r9'
+00000AB7: 8A 03 72 31 30                                        		  db 8Ah,3,'r10'
+00000ABC: 8B 03 72 31 31                                        		  db 8Bh,3,'r11'
+00000AC1: 8C 03 72 31 32                                        		  db 8Ch,3,'r12'
+00000AC6: 8D 03 72 31 33                                        		  db 8Dh,3,'r13'
+00000ACB: 8E 03 72 31 34                                        		  db 8Eh,3,'r14'
+00000AD0: 8F 03 72 31 35                                        		  db 8Fh,3,'r15'
+00000AD5: F4 03 65 69 70                                        		  db 0F4h,3,'eip'
+00000ADA: F8 03 72 69 70                                        		  db 0F8h,3,'rip'
+00000ADF: 00 01 3F                                              		  db 0,1,'?'
+                                                                
+                                                                
+                                                                ;section '.data' writeable align 4
+                                                                
+00000AE2: 00 00 00 00                                             input_file dd 0
+00000AE6: 00 00 00 00                                             output_file dd 0
+00000AEA: 10 00 00 00                                             code_bytes_per_line dd 16
+00000AEE: 00                                                      show_addresses db 0
+                                                                
+00000AEF: 0D 0A                                                   line_break db 0Dh,0Ah
+                                                                
+00000AF1: 6C 69 73 74 69 6E 67 20 67 65 6E 65 72 61 74 6F         _usage db 'listing generator for flat assembler',0Dh,0Ah
+          72 20 66 6F 72 20 66 6C 61 74 20 61 73 73 65 6D       
+          62 6C 65 72 0D 0A                                     
+00000B17: 75 73 61 67 65 3A 20 6C 69 73 74 69 6E 67 20 3C       	 db 'usage: listing <input> <output>',0Dh,0Ah
+          69 6E 70 75 74 3E 20 3C 6F 75 74 70 75 74 3E 0D       
+          0A                                                    
+00000B38: 6F 70 74 69 6F 6E 61 6C 20 73 65 74 74 69 6E 67       	 db 'optional settings:',0Dh,0Ah
+          73 3A 0D 0A                                           
+00000B4C: 20 2D 61 20 20 20 20 20 20 20 20 20 20 20 73 68       	 db ' -a           show target addresses for assembled code',0Dh,0Ah
+          6F 77 20 74 61 72 67 65 74 20 61 64 64 72 65 73       
+          73 65 73 20 66 6F 72 20 61 73 73 65 6D 62 6C 65       
+          64 20 63 6F 64 65 0D 0A                               
+00000B84: 20 2D 62 20 3C 6E 75 6D 62 65 72 3E 20 20 73 65       	 db ' -b <number>  set the amount of bytes listed per line',0Dh,0Ah
+          74 20 74 68 65 20 61 6D 6F 75 6E 74 20 6F 66 20       
+          62 79 74 65 73 20 6C 69 73 74 65 64 20 70 65 72       
+          20 6C 69 6E 65 0D 0A                                  
+00000BBB: 00                                                    	 db 0
+00000BBC: 65 72 72 6F 72 3A 20 00                                 _error_prefix db 'error: ',0
+00000BC4: 2E 0D 0A 00                                             _error_suffix db '.',0Dh,0Ah,0
+                                                                
+                                                                ;section '.bss' writeable align 4
+                                                                
+                                                                  ;argc rd 1
+                                                                  ;argv rd 1
+                                                                
+                                                                  input rd 1
+                                                                  assembled_code rd 1
+                                                                  assembled_code_length rd 1
+                                                                  code_end rd 1
+                                                                  code_offset rd 1
+                                                                  code_length rd 1
+                                                                  output_handle rd 1
+                                                                  output_buffer rd 1
+                                                                  current_source_file rd 1
+                                                                  current_source_line rd 1
+                                                                  source rd 1
+                                                                  source_length rd 1
+                                                                  maximum_address_length rd 1
+                                                                  address_start rd 1
+                                                                  last_listed_address rd 1
+                                                                
+                                                                  ;display_handle rd 1
+                                                                  ;character rb 1
+                                                                
+                                                                  params rb 1000h
+                                                                  characters rb 100h
+                                                                  buffer rb 1000h
+                                                                
+                                                                bss_end:
+                                                                

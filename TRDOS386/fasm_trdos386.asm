@@ -2,7 +2,7 @@
 ; FASM.PRG - FLAT Assembler for TRDOS 386 (v2.0.9 and later)
 ; Erdogan Tan - 2024
 ; Beginning: 04/10/2024
-; Last Update: 06/10/2024
+; Last Update: 08/10/2024
 ; -----------------------------------------------------------
 ; Modified from 'fasm.asm' file of
 ; 'flat assembler 1.73.32 for Linux' source code
@@ -22,6 +22,12 @@
 	use32
 	org 0x0
 start:
+	;; 08/10/2024
+	mov	ebx, bss_end
+	mov	eax, 17 ; sysbreak
+	int	0x40
+	;;;
+
 	;mov	[con_handle],1
 	mov	esi,_logo
 	call	display_string
@@ -385,11 +391,15 @@ last_displayed db ?
 character db ?
 preprocessing_done db ?
 
-predefinitions rb 1000h
-buffer rb 1000h
-
 program db 0Dh,0Ah
 	db "Flat Asssembler for TRDOS 386 v2"
 	db 0Dh,0Ah
 	db "Erdogan Tan - October 2024"
 	db 0Dh,0Ah,0
+
+align 4
+
+predefinitions rb 1000h
+buffer rb 1000h
+
+bss_end: ; 08/10/2024	

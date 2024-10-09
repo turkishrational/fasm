@@ -2,7 +2,7 @@
 ; FLAT Assembler for TRDOS 386 (v2.0.9 and later)
 ; Erdogan Tan - 2024
 ; Beginning: 04/10/2024
-; Last Update: 06/10/2024
+; Last Update: 08/10/2024
 ; -----------------------------------------------------------
 ; Modified from 'system.inc' file of
 ; 'flat assembler 1.73.32 for Linux' source code
@@ -173,7 +173,7 @@ open:
 	mov	eax,5
 	mov	ebx,buffer
 	;mov	ecx,O_RDONLY
-	xor	edx,edx
+	;xor	edx,edx
 	;int	0x80
 	; TRDOS 386
 	xor	ecx,ecx ; open for read
