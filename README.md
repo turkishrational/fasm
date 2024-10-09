@@ -12,7 +12,7 @@ physical memory layout. Interrupts are set to run in the 1st 4MB -PDE 0- also wi
 User's segment selectors are set for 4MB base address with 4GB-4MB limit.)
 
 (TRDOS 386 kernel handles memory as virtually -up to 4GB- flat memory by using system and user page tables.)
-((In fact, TRDOS 386 programs start at 4MB physical base address but their page directories are set
+((In fact, TRDOS 386 programs start at 4MB linear base address but their page directories are set
   to provide virtual address 0 as start address. Maximum usable -virtual- memory for TRDOS 386 programs is 4GB-4MB.) 
 
 How FASM assembles a TRDOS 386 binary: The answer is 'It is very easy!'.
