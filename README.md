@@ -1,6 +1,6 @@
 ## Flat Assembler (FASM) for TRDOS 386 Operating System
 
-TRDOS 386 adaptation/port of Tomasz Grysztar's Flat Assembler (v1.73.32)
+TRDOS 386 adaptation/port of Tomasz Grysztar's Flat Assembler (v1.73.35)
 
 .. FASM.PRG assembles itself ..
 
@@ -25,4 +25,4 @@ Question: By using FASM.PRG in TRDOS 386 environment...
           Is it possible to assemble executable files for WINDOWS, LINUX, DOS or another operating system?
 Answer: Yes. Just as FASM.EXE and Linux FASM do it.
 
-Erdogan Tan - October 2024
+Erdogan Tan - March 2026
