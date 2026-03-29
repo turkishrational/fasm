@@ -1,0 +1,1 @@
+copy fasm.bin FASM.PRG
